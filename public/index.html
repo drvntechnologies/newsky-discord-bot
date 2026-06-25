@@ -518,6 +518,15 @@
         </div>
       </div>
 
+      <div id="botStatusBanner" style="display: none; padding: 12px 16px; border-radius: var(--radius); margin-bottom: 20px; font-size: 13px; line-height: 1.5; border: 1px solid var(--border); background: var(--bg-card);">
+        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+          <span id="botStatusIndicator" style="width: 8px; height: 8px; border-radius: 50%; display: inline-block;"></span>
+          <strong id="botStatusLabel">Bot Status</strong>
+          <span id="botStatusTime" style="margin-left: auto; font-size: 11px; color: var(--text-muted);"></span>
+        </div>
+        <div id="botStatusMsg" style="color: var(--text-secondary); font-family: var(--font-mono); font-size: 12px;"></div>
+      </div>
+
       <div class="section">
         <div class="section-header">
           <h2>Active Flights</h2>
@@ -665,15 +674,39 @@
           { count: bookedCount },
           { data: flights },
           { data: bookings },
-          { data: webhookLogs }
+          { data: webhookLogs },
+          { data: botStateRows }
         ] = await Promise.all([
           sb.from('tracked_flights').select('*', { count: 'exact', head: true }).eq('status', 'active'),
           sb.from('tracked_flights').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
           sb.from('booked_flights').select('*', { count: 'exact', head: true }),
           sb.from('tracked_flights').select('*').order('created_at', { ascending: false }).limit(200),
           sb.from('booked_flights').select('*').order('created_at', { ascending: false }).limit(50),
-          sb.from('webhook_logs').select('*').order('received_at', { ascending: false }).limit(50)
+          sb.from('webhook_logs').select('*').order('received_at', { ascending: false }).limit(50),
+          sb.from('bot_state').select('*').eq('id', 1)
         ]);
+
+        // Bot status banner
+        const botState = botStateRows && botStateRows[0];
+        const banner = $('#botStatusBanner');
+        if (botState && botState.status) {
+          banner.style.display = 'block';
+          const isOk = botState.discord_connected;
+          const indicator = $('#botStatusIndicator');
+          indicator.style.background = isOk ? 'var(--success)' : 'var(--error)';
+          $('#botStatusLabel').textContent = isOk ? 'Bot Connected' : `Bot: ${botState.status}`;
+          $('#botStatusMsg').textContent = botState.status_message || '';
+          if (botState.updated_at) {
+            $('#botStatusTime').textContent = formatTime(botState.updated_at);
+          }
+          if (isOk) {
+            banner.style.borderColor = 'var(--success)';
+          } else {
+            banner.style.borderColor = 'var(--error)';
+          }
+        } else {
+          banner.style.display = 'none';
+        }
 
         $('#statActive').textContent = activeCount ?? 0;
         $('#statBooked').textContent = bookedCount ?? 0;

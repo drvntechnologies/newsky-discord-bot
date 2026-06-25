@@ -70,7 +70,11 @@ client.on('ready', async () => {
   console.log(`[Bot] Posting notifications to #${channel.name}`);
   console.log(`[Bot] Polling every ${POLL_INTERVAL_MS / 1000}s...`);
 
-  await catchUp(channel);
+  try {
+    await catchUp(channel);
+  } catch (err) {
+    console.error('[Bot] catchUp error (non-fatal):', err.message);
+  }
 
   poll(channel);
   pollBookings(channel);
@@ -113,8 +117,35 @@ function shutdown() {
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
-client.login(process.env.BOT_TOKEN).catch(async (err) => {
-  console.error(`[Bot] Failed to login: ${err.message}`);
-  await updateBotStatus('login_failed', `Login failed: ${err.message}`, false, null);
-  console.log('[Web] Dashboard still running without Discord connection.');
+process.on('unhandledRejection', async (reason) => {
+  const msg = reason instanceof Error ? reason.message : String(reason);
+  console.error('[Bot] Unhandled rejection:', msg);
+  await updateBotStatus('crash', `Unhandled error: ${msg}`, false, null);
 });
+
+// Login with a timeout to detect hanging connections
+const LOGIN_TIMEOUT_MS = 30_000;
+
+updateBotStatus('logging_in', 'Attempting Discord login...', false, null);
+
+let loginResolved = false;
+
+const loginTimeout = setTimeout(async () => {
+  if (!loginResolved) {
+    console.error(`[Bot] Login timed out after ${LOGIN_TIMEOUT_MS / 1000}s — Discord gateway may be unreachable`);
+    await updateBotStatus('timeout', `Login timed out after ${LOGIN_TIMEOUT_MS / 1000}s. Discord gateway unreachable from this server. Try redeploying.`, false, null);
+  }
+}, LOGIN_TIMEOUT_MS);
+
+client.login(process.env.BOT_TOKEN)
+  .then(() => {
+    loginResolved = true;
+    clearTimeout(loginTimeout);
+  })
+  .catch(async (err) => {
+    loginResolved = true;
+    clearTimeout(loginTimeout);
+    console.error(`[Bot] Failed to login: ${err.message}`);
+    await updateBotStatus('login_failed', `Login failed: ${err.message}`, false, null);
+    console.log('[Web] Dashboard still running without Discord connection.');
+  });

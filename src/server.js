@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import supabase from './supabase.js';
+import { handleWebhookEvent } from './webhookHandler.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ADMIN_PASSWORD = 'teddy123';
@@ -88,7 +89,7 @@ export function createServer() {
     });
   });
 
-  // NewSky webhook receiver — logs all incoming payloads for inspection
+  // NewSky webhook receiver — logs and processes incoming events
   app.post('/api/webhook/newsky', async (req, res) => {
     const logEntry = {
       method: req.method,
@@ -107,6 +108,9 @@ export function createServer() {
     if (error) {
       console.error('[Webhook] Error saving log:', error.message);
     }
+
+    // Process the event and send Discord notification
+    await handleWebhookEvent(req.body, discordChannel);
 
     res.status(200).json({ received: true });
   });

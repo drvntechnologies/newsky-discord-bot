@@ -807,9 +807,11 @@
       try {
         const res = await fetch(`/api/webhook-logs/${logId}/resend`, {
           method: 'POST',
-          headers: { 'x-admin-token': token },
+          headers: { 'Content-Type': 'application/json', 'x-admin-token': token },
         });
-        const data = await res.json();
+        const text = await res.text();
+        let data;
+        try { data = JSON.parse(text); } catch (_) { data = { error: text }; }
         if (!res.ok) {
           showToast(data.error || 'Failed to resend', 'error');
           btn.textContent = 'Resend';
@@ -820,7 +822,7 @@
           return;
         }
       } catch (err) {
-        showToast('Could not reach server', 'error');
+        showToast('Could not reach server: ' + err.message, 'error');
         btn.textContent = 'Resend';
       }
       btn.disabled = false;

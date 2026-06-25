@@ -433,6 +433,33 @@
       color: var(--text-muted);
       margin-bottom: 6px;
     }
+
+    .btn-resend {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 500;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      background: var(--bg-hover);
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all var(--transition);
+      margin-top: 6px;
+    }
+
+    .btn-resend:hover {
+      background: var(--accent);
+      color: #fff;
+      border-color: var(--accent);
+    }
+
+    .btn-resend:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
@@ -574,6 +601,7 @@
               <tr>
                 <th style="width: 150px;">Received</th>
                 <th>Payload</th>
+                <th style="width: 100px;">Actions</th>
               </tr>
             </thead>
             <tbody id="webhookTableBody">
@@ -702,12 +730,13 @@
       const tbody = $('#webhookTableBody');
       $('#webhookBadge').textContent = logs.length;
       if (!logs.length) {
-        tbody.innerHTML = '<tr><td colspan="2" class="empty-state">No webhook logs yet. Waiting for NewSky to send data...</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="3" class="empty-state">No webhook logs yet. Waiting for NewSky to send data...</td></tr>';
         return;
       }
       tbody.innerHTML = logs.map(log => {
         const bodyStr = log.body ? JSON.stringify(log.body, null, 2) : '(empty)';
         const headersStr = log.headers ? JSON.stringify(log.headers, null, 2) : '';
+        const hasEmbeds = log.body && log.body.embeds && log.body.embeds.length > 0;
         return `
           <tr>
             <td style="vertical-align: top; white-space: nowrap;">${formatTime(log.received_at)}</td>
@@ -718,6 +747,9 @@
                 <summary style="font-size: 11px; color: var(--text-muted); cursor: pointer;">Headers</summary>
                 <div class="webhook-payload" style="margin-top: 4px;">${esc(headersStr)}</div>
               </details>
+            </td>
+            <td style="vertical-align: top;">
+              ${hasEmbeds ? `<button class="btn-resend" onclick="resendWebhook('${log.id}', this)">Resend</button>` : ''}
             </td>
           </tr>
         `;
@@ -768,6 +800,31 @@
     });
 
     $('#autoRefresh').addEventListener('change', startAutoRefresh);
+
+    async function resendWebhook(logId, btn) {
+      btn.disabled = true;
+      btn.textContent = 'Sending...';
+      try {
+        const res = await fetch(`/api/webhook-logs/${logId}/resend`, {
+          method: 'POST',
+          headers: { 'x-admin-token': token },
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Failed to resend', 'error');
+          btn.textContent = 'Resend';
+        } else {
+          showToast('Notification sent to Discord!', 'success');
+          btn.textContent = 'Sent!';
+          setTimeout(() => { btn.textContent = 'Resend'; btn.disabled = false; }, 3000);
+          return;
+        }
+      } catch (err) {
+        showToast('Could not reach server', 'error');
+        btn.textContent = 'Resend';
+      }
+      btn.disabled = false;
+    }
 
     $('#themeToggle').addEventListener('click', () => {
       const html = document.documentElement;

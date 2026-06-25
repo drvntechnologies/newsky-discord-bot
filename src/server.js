@@ -137,6 +137,33 @@ export function createServer() {
     res.json(data);
   });
 
+  // Resend a webhook log payload to Discord
+  app.post('/api/webhook-logs/:id/resend', requireAuth, async (req, res) => {
+    if (!discordChannel) {
+      return res.status(503).json({ error: 'Discord channel not connected yet' });
+    }
+
+    const { data: log, error } = await supabase
+      .from('webhook_logs')
+      .select('body')
+      .eq('id', req.params.id)
+      .maybeSingle();
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+    if (!log) {
+      return res.status(404).json({ error: 'Log entry not found' });
+    }
+
+    try {
+      await handleWebhookEvent(log.body, discordChannel);
+      res.json({ success: true, message: 'Notification resent to Discord' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post('/api/test-notification', requireAuth, async (_req, res) => {
     if (!discordChannel) {
       return res.status(503).json({ error: 'Discord channel not connected yet' });

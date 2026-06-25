@@ -1,10 +1,8 @@
 import 'dotenv/config';
 import { Client, GatewayIntentBits } from 'discord.js';
-import { poll, pollBookings, updateLastPollAt, catchUp } from './src/poller.js';
 import { createServer, setDiscordChannel, setDiscordClient } from './src/server.js';
 import supabase from './src/supabase.js';
 
-const POLL_INTERVAL_MS = 60_000;
 const PORT = process.env.PORT || 3000;
 
 async function updateBotStatus(status, message, connected, channelName) {
@@ -27,14 +25,11 @@ const client = new Client({
 
 setDiscordClient(client);
 
-let pollInterval = null;
-
 const app = createServer();
 app.listen(PORT, () => {
-  console.log(`[Web] Admin dashboard running at http://localhost:${PORT}`);
+  console.log(`[Web] Webhook relay running at http://localhost:${PORT}`);
 });
 
-// Log env check at startup
 const hasToken = !!process.env.BOT_TOKEN;
 const hasChannel = !!process.env.CHANNEL_ID;
 console.log(`[Boot] BOT_TOKEN set: ${hasToken}, CHANNEL_ID set: ${hasChannel}`);
@@ -67,22 +62,7 @@ client.on('ready', async () => {
   const channel = await connectChannel();
   if (!channel) return;
 
-  console.log(`[Bot] Posting notifications to #${channel.name}`);
-  console.log(`[Bot] Polling every ${POLL_INTERVAL_MS / 1000}s...`);
-
-  try {
-    await catchUp(channel);
-  } catch (err) {
-    console.error('[Bot] catchUp error (non-fatal):', err.message);
-  }
-
-  poll(channel);
-  pollBookings(channel);
-  pollInterval = setInterval(async () => {
-    poll(channel);
-    pollBookings(channel);
-    await updateLastPollAt();
-  }, POLL_INTERVAL_MS);
+  console.log(`[Bot] Webhook relay active — forwarding to #${channel.name}`);
 });
 
 client.on('shardResume', async () => {
@@ -109,7 +89,6 @@ client.on('error', (err) => {
 
 function shutdown() {
   console.log('[Bot] Shutting down...');
-  if (pollInterval) clearInterval(pollInterval);
   client.destroy();
   process.exit(0);
 }
@@ -123,7 +102,6 @@ process.on('unhandledRejection', async (reason) => {
   await updateBotStatus('crash', `Unhandled error: ${msg}`, false, null);
 });
 
-// Login with a timeout to detect hanging connections
 const LOGIN_TIMEOUT_MS = 30_000;
 
 updateBotStatus('logging_in', 'Attempting Discord login...', false, null);

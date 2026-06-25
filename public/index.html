@@ -513,8 +513,8 @@
           <div class="value" id="statCompleted">-</div>
         </div>
         <div class="stat-card">
-          <div class="label">Channel</div>
-          <div class="value" id="statChannel" style="font-size: 16px;">-</div>
+          <div class="label">Webhooks Received</div>
+          <div class="value" id="statWebhooks">-</div>
         </div>
       </div>
 
@@ -672,6 +672,7 @@
           { count: activeCount },
           { count: completedCount },
           { count: bookedCount },
+          { count: webhookCount },
           { data: flights },
           { data: bookings },
           { data: webhookLogs },
@@ -680,6 +681,7 @@
           sb.from('tracked_flights').select('*', { count: 'exact', head: true }).eq('status', 'active'),
           sb.from('tracked_flights').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
           sb.from('booked_flights').select('*', { count: 'exact', head: true }),
+          sb.from('webhook_logs').select('*', { count: 'exact', head: true }),
           sb.from('tracked_flights').select('*').order('created_at', { ascending: false }).limit(200),
           sb.from('booked_flights').select('*').order('created_at', { ascending: false }).limit(50),
           sb.from('webhook_logs').select('*').order('received_at', { ascending: false }).limit(50),
@@ -711,9 +713,9 @@
         $('#statActive').textContent = activeCount ?? 0;
         $('#statBooked').textContent = bookedCount ?? 0;
         $('#statCompleted').textContent = completedCount ?? 0;
-        $('#statChannel').textContent = 'Bot-managed';
-        $('#channelName').textContent = '';
-        $('#statusDot').className = 'status-dot';
+        $('#statWebhooks').textContent = webhookCount ?? 0;
+        $('#channelName').textContent = botState?.channel_name ? `#${botState.channel_name}` : '';
+        $('#statusDot').className = 'status-dot' + (botState?.discord_connected ? '' : ' disconnected');
 
         const active = (flights || []).filter(f => f.status === 'active');
         const completed = (flights || []).filter(f => f.status === 'completed');

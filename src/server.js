@@ -88,6 +88,51 @@ export function createServer() {
     });
   });
 
+  // NewSky webhook receiver — logs all incoming payloads for inspection
+  app.post('/api/webhook/newsky', async (req, res) => {
+    const logEntry = {
+      method: req.method,
+      headers: req.headers,
+      body: req.body,
+      query_params: req.query,
+    };
+
+    console.log('[Webhook] Received payload from NewSky:');
+    console.log(JSON.stringify(logEntry, null, 2));
+
+    const { error } = await supabase
+      .from('webhook_logs')
+      .insert(logEntry);
+
+    if (error) {
+      console.error('[Webhook] Error saving log:', error.message);
+    }
+
+    res.status(200).json({ received: true });
+  });
+
+  // Also accept GET in case NewSky sends a verification ping
+  app.get('/api/webhook/newsky', (req, res) => {
+    console.log('[Webhook] GET ping received:', JSON.stringify(req.query));
+    res.status(200).json({ status: 'ok', message: 'Webhook endpoint active' });
+  });
+
+  // Webhook logs viewer (auth-protected)
+  app.get('/api/webhook-logs', requireAuth, async (req, res) => {
+    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+
+    const { data, error } = await supabase
+      .from('webhook_logs')
+      .select('*')
+      .order('received_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      return res.status(500).json({ error: error.message });
+    }
+    res.json(data);
+  });
+
   app.post('/api/test-notification', requireAuth, async (_req, res) => {
     if (!discordChannel) {
       return res.status(503).json({ error: 'Discord channel not connected yet' });

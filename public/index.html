@@ -412,6 +412,27 @@
       margin-top: 8px;
       display: none;
     }
+
+    .webhook-payload {
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 10px 12px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      line-height: 1.5;
+      color: var(--text-secondary);
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .webhook-meta {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
   </style>
 </head>
 <body>
@@ -541,6 +562,26 @@
           </table>
         </div>
       </div>
+
+      <div class="section">
+        <div class="section-header">
+          <h2>Webhook Logs</h2>
+          <span class="badge badge-active" id="webhookBadge">0</span>
+        </div>
+        <div class="table-container" id="webhookLogsContainer">
+          <table>
+            <thead>
+              <tr>
+                <th style="width: 150px;">Received</th>
+                <th>Payload</th>
+              </tr>
+            </thead>
+            <tbody id="webhookTableBody">
+              <tr><td colspan="2" class="empty-state">No webhook logs yet. Waiting for NewSky to send data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -595,13 +636,15 @@
           { count: completedCount },
           { count: bookedCount },
           { data: flights },
-          { data: bookings }
+          { data: bookings },
+          { data: webhookLogs }
         ] = await Promise.all([
           sb.from('tracked_flights').select('*', { count: 'exact', head: true }).eq('status', 'active'),
           sb.from('tracked_flights').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
           sb.from('booked_flights').select('*', { count: 'exact', head: true }),
           sb.from('tracked_flights').select('*').order('created_at', { ascending: false }).limit(200),
-          sb.from('booked_flights').select('*').order('created_at', { ascending: false }).limit(50)
+          sb.from('booked_flights').select('*').order('created_at', { ascending: false }).limit(50),
+          sb.from('webhook_logs').select('*').order('received_at', { ascending: false }).limit(50)
         ]);
 
         $('#statActive').textContent = activeCount ?? 0;
@@ -622,6 +665,7 @@
         renderTable('activeTableBody', active, 'started_at');
         renderTable('completedTableBody', completed, 'completed_at');
         renderTable('bookedTableBody', bookedList, 'created_at');
+        renderWebhookLogs(webhookLogs || []);
 
         $('#lastUpdated').textContent = `Updated ${new Date().toLocaleTimeString()}`;
       } catch (e) {
@@ -652,6 +696,32 @@
       const d = document.createElement('div');
       d.textContent = str;
       return d.innerHTML;
+    }
+
+    function renderWebhookLogs(logs) {
+      const tbody = $('#webhookTableBody');
+      $('#webhookBadge').textContent = logs.length;
+      if (!logs.length) {
+        tbody.innerHTML = '<tr><td colspan="2" class="empty-state">No webhook logs yet. Waiting for NewSky to send data...</td></tr>';
+        return;
+      }
+      tbody.innerHTML = logs.map(log => {
+        const bodyStr = log.body ? JSON.stringify(log.body, null, 2) : '(empty)';
+        const headersStr = log.headers ? JSON.stringify(log.headers, null, 2) : '';
+        return `
+          <tr>
+            <td style="vertical-align: top; white-space: nowrap;">${formatTime(log.received_at)}</td>
+            <td>
+              <div class="webhook-meta">${esc(log.method || 'POST')} | Query: ${esc(JSON.stringify(log.query_params || {}))}</div>
+              <div class="webhook-payload">${esc(bodyStr)}</div>
+              <details style="margin-top: 6px;">
+                <summary style="font-size: 11px; color: var(--text-muted); cursor: pointer;">Headers</summary>
+                <div class="webhook-payload" style="margin-top: 4px;">${esc(headersStr)}</div>
+              </details>
+            </td>
+          </tr>
+        `;
+      }).join('');
     }
 
     function startAutoRefresh() {

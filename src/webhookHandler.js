@@ -1,4 +1,15 @@
-import supabase from './supabase.js';
+function sanitizeEmbeds(embeds) {
+  return embeds.map((embed) => {
+    if (!embed.fields) return embed;
+    return {
+      ...embed,
+      fields: embed.fields.map((field) => ({
+        ...field,
+        value: field.value || '\u200B',
+      })),
+    };
+  });
+}
 
 export async function handleWebhookEvent(payload, channel) {
   if (!payload || !payload.embeds || !Array.isArray(payload.embeds)) {
@@ -11,9 +22,11 @@ export async function handleWebhookEvent(payload, channel) {
     return;
   }
 
+  const embeds = sanitizeEmbeds(payload.embeds);
+
   try {
-    await channel.send({ embeds: payload.embeds });
-    console.log(`[Webhook] Forwarded embed to Discord: ${payload.embeds[0]?.title || 'untitled'}`);
+    await channel.send({ embeds });
+    console.log(`[Webhook] Forwarded embed to Discord: ${embeds[0]?.title || 'untitled'}`);
   } catch (err) {
     console.error('[Webhook] Failed to send to Discord:', err.message);
   }

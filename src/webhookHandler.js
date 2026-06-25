@@ -19,15 +19,11 @@ export async function handleWebhookEvent(payload, channel) {
 
   if (!channel) {
     console.log('[Webhook] Discord channel not connected, cannot forward embed.');
-    return;
+    throw new Error('Discord channel not connected');
   }
 
   const embeds = sanitizeEmbeds(payload.embeds);
 
-  try {
-    await channel.send({ embeds });
-    console.log(`[Webhook] Forwarded embed to Discord: ${embeds[0]?.title || 'untitled'}`);
-  } catch (err) {
-    console.error('[Webhook] Failed to send to Discord:', err.message);
-  }
+  await channel.send({ embeds });
+  console.log(`[Webhook] Forwarded embed to Discord: ${embeds[0]?.title || 'untitled'}`);
 }

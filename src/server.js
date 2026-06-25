@@ -19,8 +19,7 @@ export function setDiscordClient(client) {
 }
 
 async function getChannel() {
-  if (discordChannel) return discordChannel;
-  if (discordClient && process.env.CHANNEL_ID) {
+  if (discordClient && discordClient.isReady() && process.env.CHANNEL_ID) {
     try {
       const ch = await discordClient.channels.fetch(process.env.CHANNEL_ID);
       if (ch && ch.isTextBased()) {
@@ -29,7 +28,7 @@ async function getChannel() {
       }
     } catch (_) {}
   }
-  return null;
+  return discordChannel;
 }
 
 export function createServer() {
@@ -130,7 +129,11 @@ export function createServer() {
 
     // Process the event and send Discord notification
     const channel = await getChannel();
-    await handleWebhookEvent(req.body, channel);
+    try {
+      await handleWebhookEvent(req.body, channel);
+    } catch (err) {
+      console.error('[Webhook] Discord send failed:', err.message);
+    }
 
     res.status(200).json({ received: true });
   });

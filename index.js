@@ -19,24 +19,27 @@ app.listen(PORT, () => {
   console.log(`[Web] Admin dashboard running at http://localhost:${PORT}`);
 });
 
-client.on('ready', async () => {
-  console.log(`[Bot] Logged in as ${client.user.tag}`);
-
+async function connectChannel() {
   let channel;
   try {
     channel = await client.channels.fetch(process.env.CHANNEL_ID);
   } catch (err) {
     console.error(`[Bot] Cannot access channel ${process.env.CHANNEL_ID}: ${err.message}`);
-    console.error('[Bot] Ensure the bot has View Channel permission and the ID is a text channel.');
-    return;
+    return null;
   }
-
   if (!channel || !channel.isTextBased()) {
     console.error(`[Bot] Channel ${process.env.CHANNEL_ID} is not a text channel.`);
-    return;
+    return null;
   }
-
   setDiscordChannel(channel);
+  return channel;
+}
+
+client.on('ready', async () => {
+  console.log(`[Bot] Logged in as ${client.user.tag}`);
+
+  const channel = await connectChannel();
+  if (!channel) return;
 
   console.log(`[Bot] Posting notifications to #${channel.name}`);
   console.log(`[Bot] Polling every ${POLL_INTERVAL_MS / 1000}s...`);
@@ -50,6 +53,25 @@ client.on('ready', async () => {
     pollBookings(channel);
     await updateLastPollAt();
   }, POLL_INTERVAL_MS);
+});
+
+client.on('shardResume', async () => {
+  console.log('[Bot] Connection resumed, re-fetching channel...');
+  await connectChannel();
+});
+
+client.on('shardReconnecting', () => {
+  console.log('[Bot] Reconnecting to Discord...');
+  setDiscordChannel(null);
+});
+
+client.on('shardDisconnect', (event) => {
+  console.error(`[Bot] Disconnected from Discord (code ${event.code})`);
+  setDiscordChannel(null);
+});
+
+client.on('error', (err) => {
+  console.error('[Bot] Client error:', err.message);
 });
 
 function shutdown() {

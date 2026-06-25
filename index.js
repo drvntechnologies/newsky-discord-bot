@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import { Client, GatewayIntentBits } from 'discord.js';
 import { poll, pollBookings, updateLastPollAt, catchUp } from './src/poller.js';
-import { createServer, setDiscordChannel } from './src/server.js';
+import { createServer, setDiscordChannel, setDiscordClient } from './src/server.js';
 
 const POLL_INTERVAL_MS = 60_000;
 const PORT = process.env.PORT || 3000;
@@ -9,6 +9,8 @@ const PORT = process.env.PORT || 3000;
 const client = new Client({
   intents: [GatewayIntentBits.Guilds],
 });
+
+setDiscordClient(client);
 
 let pollInterval = null;
 

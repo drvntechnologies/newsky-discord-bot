@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NewSky Flight Tracker - Admin</title>
+  <style>
+    :root {
+      --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, sans-serif;
+      --font-mono: 'SF Mono', 'Fira Code', monospace;
+      --radius: 8px;
+      --transition: 0.2s ease;
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #0f1117;
+      --bg-secondary: #1a1d27;
+      --bg-card: #1e2130;
+      --bg-hover: #252838;
+      --border: #2a2d3a;
+      --text-primary: #e4e4e7;
+      --text-secondary: #a1a1aa;
+      --text-muted: #71717a;
+      --accent: #3b82f6;
+      --accent-hover: #2563eb;
+      --success: #22c55e;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --badge-active-bg: rgba(34, 197, 94, 0.15);
+      --badge-active-text: #4ade80;
+      --badge-completed-bg: rgba(59, 130, 246, 0.15);
+      --badge-completed-text: #60a5fa;
+    }
+
+    [data-theme="light"] {
+      --bg-primary: #f8fafc;
+      --bg-secondary: #ffffff;
+      --bg-card: #ffffff;
+      --bg-hover: #f1f5f9;
+      --border: #e2e8f0;
+      --text-primary: #0f172a;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --success: #16a34a;
+      --warning: #d97706;
+      --error: #dc2626;
+      --badge-active-bg: rgba(22, 163, 74, 0.1);
+      --badge-active-text: #16a34a;
+      --badge-completed-bg: rgba(37, 99, 235, 0.1);
+      --badge-completed-text: #2563eb;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-sans);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    .login-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .login-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 40px;
+      width: 100%;
+      max-width: 380px;
+    }
+
+    .login-card h1 {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .login-card p {
+      color: var(--text-secondary);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    .input-group {
+      margin-bottom: 16px;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 6px;
+    }
+
+    .input-group input {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text-primary);
+      font-size: 14px;
+      outline: none;
+      transition: border-color var(--transition);
+    }
+
+    .input-group input:focus {
+      border-color: var(--accent);
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      font-size: 14px;
+      font-weight: 500;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: all var(--transition);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      width: 100%;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      background: var(--border);
+    }
+
+    .btn-warning {
+      background: var(--warning);
+      color: #fff;
+    }
+
+    .btn-warning:hover {
+      opacity: 0.9;
+    }
+
+    .dashboard { display: none; }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 24px;
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-left h1 {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--success);
+      animation: pulse 2s infinite;
+    }
+
+    .status-dot.offline { background: var(--error); animation: none; }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .theme-toggle {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 6px 10px;
+      cursor: pointer;
+      color: var(--text-secondary);
+      font-size: 16px;
+      transition: all var(--transition);
+    }
+
+    .theme-toggle:hover {
+      background: var(--bg-hover);
+      color: var(--text-primary);
+    }
+
+    .main-content {
+      padding: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .stat-card .label {
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .stat-card .value {
+      font-size: 28px;
+      font-weight: 700;
+    }
+
+    .section {
+      margin-bottom: 32px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .section-header h2 {
+      font-size: 15px;
+      font-weight: 600;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 10px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .badge-active {
+      background: var(--badge-active-bg);
+      color: var(--badge-active-text);
+    }
+
+    .badge-completed {
+      background: var(--badge-completed-bg);
+      color: var(--badge-completed-text);
+    }
+
+    .badge-booked {
+      background: rgba(245, 158, 11, 0.15);
+      color: #fbbf24;
+    }
+
+    .table-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .table-container table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .table-container th {
+      text-align: left;
+      padding: 12px 16px;
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      background: var(--bg-secondary);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .table-container td {
+      padding: 12px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+      color: var(--text-secondary);
+    }
+
+    .table-container tr:last-child td {
+      border-bottom: none;
+    }
+
+    .table-container tr:hover td {
+      background: var(--bg-hover);
+    }
+
+    .table-container td.mono {
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    .empty-state {
+      padding: 40px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      padding: 12px 20px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 500;
+      color: #fff;
+      z-index: 1000;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s ease;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    .toast.success { background: var(--success); }
+    .toast.error { background: var(--error); }
+
+    .actions-bar {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .auto-refresh-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .auto-refresh-label input {
+      accent-color: var(--accent);
+    }
+
+    .last-updated {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+
+    @media (max-width: 768px) {
+      .main-content { padding: 16px; }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .header { padding: 12px 16px; }
+      .table-container { overflow-x: auto; }
+      .table-container table { min-width: 600px; }
+    }
+
+    .login-error {
+      color: var(--error);
+      font-size: 13px;
+      margin-top: 8px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="login-container" id="loginView">
+    <div class="login-card">
+      <h1>Flight Tracker Admin</h1>
+      <p>Enter the admin password to access the dashboard.</p>
+      <div class="input-group">
+        <label for="password">Password</label>
+        <input type="password" id="password" placeholder="Enter password" autofocus>
+      </div>
+      <button class="btn btn-primary" id="loginBtn">Sign In</button>
+      <div class="login-error" id="loginError">Invalid password. Try again.</div>
+    </div>
+  </div>
+
+  <div class="dashboard" id="dashboardView">
+    <header class="header">
+      <div class="header-left">
+        <div class="status-dot" id="statusDot"></div>
+        <h1>NewSky Flight Tracker</h1>
+        <span id="channelName" style="font-size: 13px; color: var(--text-muted);"></span>
+      </div>
+      <div class="header-right">
+        <button class="theme-toggle" id="themeToggle" title="Toggle theme">&#9790;</button>
+        <button class="btn btn-secondary" id="refreshBtn">Refresh</button>
+        <button class="btn btn-warning" id="testBtn">Send Test</button>
+      </div>
+    </header>
+
+    <div class="main-content">
+      <div class="actions-bar">
+        <label class="auto-refresh-label">
+          <input type="checkbox" id="autoRefresh" checked>
+          Auto-refresh (30s)
+        </label>
+        <span class="last-updated" id="lastUpdated"></span>
+      </div>
+
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="label">Active Flights</div>
+          <div class="value" id="statActive">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Booked Flights</div>
+          <div class="value" id="statBooked">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Completed Flights</div>
+          <div class="value" id="statCompleted">-</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Channel</div>
+          <div class="value" id="statChannel" style="font-size: 16px;">-</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <h2>Active Flights</h2>
+          <span class="badge badge-active" id="activeBadge">0</span>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Flight</th>
+                <th>Pilot</th>
+                <th>Route</th>
+                <th>Aircraft</th>
+                <th>Network</th>
+                <th>Started</th>
+              </tr>
+            </thead>
+            <tbody id="activeTableBody">
+              <tr><td colspan="6" class="empty-state">No active flights</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <h2>Upcoming Bookings</h2>
+          <span class="badge badge-booked" id="bookedBadge">0</span>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Flight</th>
+                <th>Pilot</th>
+                <th>Route</th>
+                <th>Aircraft</th>
+                <th>Network</th>
+                <th>Booked At</th>
+              </tr>
+            </thead>
+            <tbody id="bookedTableBody">
+              <tr><td colspan="6" class="empty-state">No booked flights</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header">
+          <h2>Completed Flights</h2>
+          <span class="badge badge-completed" id="completedBadge">0</span>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Flight</th>
+                <th>Pilot</th>
+                <th>Route</th>
+                <th>Aircraft</th>
+                <th>Network</th>
+                <th>Completed</th>
+              </tr>
+            </thead>
+            <tbody id="completedTableBody">
+              <tr><td colspan="6" class="empty-state">No completed flights</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script>
+    const SUPABASE_URL = 'https://qezbbeifhhxryledyanx.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFlemJiZWlmaGh4cnlsZWR5YW54Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIyMzk0MzMsImV4cCI6MjA5NzgxNTQzM30.neNFih1WogwO9HkaSfujJ6ZncG9lKzcXUooI018qqSU';
+    const ADMIN_PASSWORD = 'teddy123';
+
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    let token = '';
+    let refreshInterval = null;
+
+    const $ = (sel) => document.querySelector(sel);
+
+    function showToast(message, type = 'success') {
+      const toast = $('#toast');
+      toast.textContent = message;
+      toast.className = `toast ${type} show`;
+      setTimeout(() => { toast.classList.remove('show'); }, 3000);
+    }
+
+    function formatTime(iso) {
+      if (!iso) return '-';
+      const d = new Date(iso);
+      return d.toLocaleString(undefined, {
+        month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+      });
+    }
+
+    function showLogin() {
+      $('#loginView').style.display = 'flex';
+      $('#dashboardView').style.display = 'none';
+      if (refreshInterval) clearInterval(refreshInterval);
+    }
+
+    function showDashboard() {
+      $('#loginView').style.display = 'none';
+      $('#dashboardView').style.display = 'block';
+      loadData();
+      startAutoRefresh();
+    }
+
+    async function loadData() {
+      try {
+        const [
+          { count: activeCount },
+          { count: completedCount },
+          { count: bookedCount },
+          { data: flights },
+          { data: bookings }
+        ] = await Promise.all([
+          sb.from('tracked_flights').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+          sb.from('tracked_flights').select('*', { count: 'exact', head: true }).eq('status', 'completed'),
+          sb.from('booked_flights').select('*', { count: 'exact', head: true }),
+          sb.from('tracked_flights').select('*').order('created_at', { ascending: false }).limit(200),
+          sb.from('booked_flights').select('*').order('created_at', { ascending: false }).limit(50)
+        ]);
+
+        $('#statActive').textContent = activeCount ?? 0;
+        $('#statBooked').textContent = bookedCount ?? 0;
+        $('#statCompleted').textContent = completedCount ?? 0;
+        $('#statChannel').textContent = 'Bot-managed';
+        $('#channelName').textContent = '';
+        $('#statusDot').className = 'status-dot';
+
+        const active = (flights || []).filter(f => f.status === 'active');
+        const completed = (flights || []).filter(f => f.status === 'completed');
+        const bookedList = bookings || [];
+
+        $('#activeBadge').textContent = active.length;
+        $('#completedBadge').textContent = completed.length;
+        $('#bookedBadge').textContent = bookedList.length;
+
+        renderTable('activeTableBody', active, 'started_at');
+        renderTable('completedTableBody', completed, 'completed_at');
+        renderTable('bookedTableBody', bookedList, 'created_at');
+
+        $('#lastUpdated').textContent = `Updated ${new Date().toLocaleTimeString()}`;
+      } catch (e) {
+        console.error('Load error:', e);
+        showToast('Failed to load data', 'error');
+      }
+    }
+
+    function renderTable(tbodyId, flights, timeField) {
+      const tbody = $(`#${tbodyId}`);
+      if (!flights.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No flights</td></tr>';
+        return;
+      }
+      tbody.innerHTML = flights.map(f => `
+        <tr>
+          <td class="mono">${esc(f.flight_number)}</td>
+          <td>${esc(f.pilot_name)}</td>
+          <td class="mono">${esc(f.departure_icao)} &rarr; ${esc(f.arrival_icao)}</td>
+          <td class="mono">${esc(f.aircraft_icao || '-')}</td>
+          <td>${esc(f.network || '-')}</td>
+          <td>${formatTime(f[timeField])}</td>
+        </tr>
+      `).join('');
+    }
+
+    function esc(str) {
+      const d = document.createElement('div');
+      d.textContent = str;
+      return d.innerHTML;
+    }
+
+    function startAutoRefresh() {
+      if (refreshInterval) clearInterval(refreshInterval);
+      if ($('#autoRefresh').checked) {
+        refreshInterval = setInterval(loadData, 30000);
+      }
+    }
+
+    // Event listeners
+    $('#loginBtn').addEventListener('click', () => {
+      const pwd = $('#password').value;
+      if (pwd === ADMIN_PASSWORD) {
+        token = pwd;
+        sessionStorage.setItem('admin_token', token);
+        $('#loginError').style.display = 'none';
+        showDashboard();
+      } else {
+        $('#loginError').style.display = 'block';
+      }
+    });
+
+    $('#password').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') $('#loginBtn').click();
+    });
+
+    $('#refreshBtn').addEventListener('click', loadData);
+
+    $('#testBtn').addEventListener('click', async () => {
+      try {
+        const res = await fetch('/api/test-notification', {
+          method: 'POST',
+          headers: { 'x-admin-token': token },
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          showToast(data.error || 'Failed to send test notification', 'error');
+        } else {
+          showToast('Test notification sent to Discord!', 'success');
+        }
+      } catch (err) {
+        showToast('Could not reach server', 'error');
+      }
+    });
+
+    $('#autoRefresh').addEventListener('change', startAutoRefresh);
+
+    $('#themeToggle').addEventListener('click', () => {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      $('#themeToggle').innerHTML = next === 'dark' ? '&#9790;' : '&#9788;';
+      localStorage.setItem('theme', next);
+    });
+
+    // Init
+    (function init() {
+      const saved = localStorage.getItem('theme');
+      if (saved) {
+        document.documentElement.setAttribute('data-theme', saved);
+        $('#themeToggle').innerHTML = saved === 'dark' ? '&#9790;' : '&#9788;';
+      }
+      const savedToken = sessionStorage.getItem('admin_token');
+      if (savedToken) {
+        token = savedToken;
+        showDashboard();
+      }
+    })();
+  </script>
+</body>
+</html>

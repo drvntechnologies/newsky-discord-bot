@@ -1,0 +1,1 @@
+ALTER TABLE tracked_flights ADD COLUMN missed_polls integer NOT NULL DEFAULT 0;

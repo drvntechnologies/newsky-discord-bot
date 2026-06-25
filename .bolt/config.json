@@ -1,0 +1,6 @@
+{
+  "template": "node",
+  "build": {
+    "outputDir": "dist"
+  }
+}
